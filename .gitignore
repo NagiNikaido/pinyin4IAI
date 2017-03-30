@@ -1,4 +1,5 @@
 src/train_set/*
+src/tmp_train/*
 *.pyc
 __pycache__/*
 p_res.txt

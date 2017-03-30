@@ -2,85 +2,66 @@ from codecvt import *
 import pypinyin,json,time,multiprocessing,re
 import os
 import random,pickle
+import tempfile
 
 trainSetPath="train_set"
 
-puncs = re.compile(r"\s\.|\(|\)|"+"|".join(["，","。","、","：","；","？","！","（","）","《","》",
+puncs = re.compile(r"\s|\.|\(|\)|"+"|".join(["，","。","、","：","；","？","！","（","）","《","》",
                          "-","——","·","……","‘","’","“","”","/","\\[","\\]","【","】","\\|","℃"]))
 
+def pre_process():
+    pass
 
-def mapper(file_name):
-    pairCount={(-1,-1):0}
+def _add_val(_key,_dict,_delta=1):
+    if _key in _dict: _dict[_key]+=_delta
+    else:  _dict[_key]=_delta
+
+def mapper(file_name,dump_dir):
+    pairCount={(-2,-1):0,(-1,-1):0}
+    dump_file=open(dump_dir+os.path.sep+file_name,"w",encoding="utf-8")
 
     def analyse(context):
-        for _pl in puncs.split(context):
-            if len(_pl) <= 1: continue
-            pl=list(_pl)
-            if hasMulti(_pl) and random.uniform(0,1)<0.01:
-                 ppl=pypinyin.lazy_pinyin(_pl,style=pypinyin.NORMAL,errors=lambda x : '*')
-                 i,j=0,0
-                 while True:
-                     while i<len(pl) and not (pl[i] in charList): i+=1
-                     while j<len(ppl) and not (ppl[j] in pinyinList): j+=1
-                     if i>=len(pl) or j>=len(ppl): break
-                     if isMulti(pl[i]):  pl[i]+="_"+ppl[j]
-                     i+=1;j+=1
-            last=[""]
-            for c in pl:
-                if c in extCharList:
-                    if last!=[""]:
-                        pairCount[(-1,-1)]+=len(last)
-                        for _last in last:
-                            t=(extCharNum[_last],extCharNum[c])
-                            if t in pairCount: pairCount[t]+=1
-                            else: pairCount[t]=1
-                    if (-1,extCharNum[c]) in pairCount:
-                        pairCount[(-1,extCharNum[c])]+=1
-                    else: pairCount[(-1,extCharNum[c])]=1
-                    last=[c]
-                elif c in charList:
-                    if last!=[""]:
-                        pairCount[(-1,-1)]+=len(last)*len(charMap[c])
-                        for _c in charMap[c]:
-                            for _last in last:
-                                t=(extCharNum[_last],extCharNum[c+"_"+_c])
-                                if t in pairCount: pairCount[t]+=1
-                                else: pairCount[t]=1
-                    for _c in charMap[c]:
-                        if (-1,extCharNum[c+"_"+_c]) in pairCount:
-                            pairCount[(-1,extCharNum[c+"_"+_c])]+=1
-                        else: pairCount[(-1,extCharNum[c+"_"+_c])]=1
-                    last=[c+"_"+fn for fn in charMap[c]]
-                else:last=[""]
+        lc=list(puncs.split(context))
+        tt="\n".join(filter(lambda x : len(x)>1 and random.uniform(0,1)<0.01 and hasMulti(x),lc))
+        if tt!="": print(tt,file=dump_file)
+        for cl in lc:
+            last=""
+            for ll in cl:
+                if not ll in charList: last=""
+                else:
+                    _add_val((-2,-1),pairCount)
+                    _add_val((-2,charNum[ll]),pairCount)
+                    if last!="":
+                        _add_val((-1,-1),pairCount)
+                        _add_val((-1,charNum[ll]),pairCount)
+                        _add_val((charNum[last],charNum[ll]),pairCount)
 
     print("processing ",file_name,"... Start time: ", time.clock())
-    with open(file_name,"r",encoding="utf-8") as fin:
+    with open(trainSetPath+os.path.sep+file_name,"r",encoding="utf-8") as fin:
         for line in fin:
             ld=json.loads(line)
             analyse(ld["title"])
             analyse(ld["html"])
     print(file_name," done. End time: ", time.clock())
+    dump_file.close()
     return pairCount
 
 if __name__ == '__main__':
-    try:
-        fin=open("model.data","rb")
-    except FileNotFoundError as e:
-        pairCount={(-1,-1):0}
-    else:
-        pairCount=pickle.load(fin)
-        fin.close()
-    pairCountList=[]
+    pairCount,pairCountList={(-2,-1):0,(-1,-1):0},[]
+    #with tempfile.TemporaryDirectory(dir=".") as tempdir:
+    def main():
+        tempdir="tmp_train"
+        pool=multiprocessing.Pool()
+        #for fn in os.listdir(trainSetPath):
+        #    pairCountList.append(pool.apply_async(\
+        #            func=mapper,args=(fn,tempdir)))
+        fn = "2016-11.txt"
+        pairCountList.append(pool.apply_async(func=mapper,args=(fn,tempdir)))
+        pool.close()
+        pool.join()
 
-    pool = multiprocessing.Pool()
-    for fn in os.listdir(trainSetPath):
-        pairCountList.append(pool.apply_async(\
-                func=mapper,args=(trainSetPath+"/"+fn,)))
-    pool.close()
-    pool.join()
-
-    for pc in pairCountList:
-        for a,b in pc.get().items():
-            if a in pairCount: pairCount[a]+=b
-            else: pairCount[a]=b
-    with open("model.data","wb") as fout: pickle.dump(pairCount,fout)
+        for pc in pairCountList:
+            for a,b in pc.get().items():
+                _add_val(a,pairCount,b)
+        with open("model.data","wb") as fout: pickle.dump(pairCount,fout)
+    main()
