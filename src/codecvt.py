@@ -1,6 +1,7 @@
-charList,charCount,charNum,charMap="",0,{},{}
+import copy
+charList,charCount,charNum,charMap=[],0,{},{}
 with open("一二级汉字表.txt","r",encoding="gbk") as fin:
-    charList=fin.readline().strip();
+    charList=list(fin.readline().strip());
     for c in charList:
         charNum[c]=charCount
         charCount+=1
@@ -14,7 +15,7 @@ with open("拼音汉字表.txt","r",encoding="gbk") as fin:
         pinyinMap[t[0]]=list(map(lambda x : charNum[x],t[1:]))
         for c in t[1:]:
             if not (c in charMap): charMap[c]=[]
-            charMap[c].append(pinyinCount)
+            charMap[c].append(t[0])
         pinyinCount+=1
 
 def num2char(sth):
@@ -60,3 +61,21 @@ def pinyin2num(sth):
         return pinyinNum[sth]
     else:
         return tuple(map(lambda x : pinyinNum[x],sth))
+
+def isMulti(sth):
+    return sth in charMap and len(charMap[sth])>1
+
+def hasMulti(sth):
+    return list(filter(lambda x : x in charMap and len(charMap[x])>1,sth)) != []
+
+extCharList,extCharCount,extCharNum=[],0,{}
+extCharList=copy.deepcopy(charList)
+for c in charList:
+    if isMulti(c):
+        pos = charNum[c]
+        extCharList[pos]+="_"+charMap[c][0]
+        for tpy in charMap[c][1:]:
+            extCharList.append(c+"_"+tpy)
+extCharCount=len(extCharList)
+for c in range(extCharCount):
+    extCharNum[extCharList[c]]=c

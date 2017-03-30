@@ -1,1 +1,4 @@
 src/train_set/*
+*.pyc
+__pycache__/*
+p_res.txt
