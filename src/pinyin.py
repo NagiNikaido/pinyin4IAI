@@ -1,4 +1,5 @@
-import codecvt
+import codecvt,pickle
 
-if __name__ == '__main__':
-    pass
+### model loading ###
+
+with open("model.data","rb") as fin: _dic = pickle.load(fin)

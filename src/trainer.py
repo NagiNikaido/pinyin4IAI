@@ -34,15 +34,22 @@ def mapper(file_name):
                             t=(extCharNum[_last],extCharNum[c])
                             if t in pairCount: pairCount[t]+=1
                             else: pairCount[t]=1
+                    if (-1,extCharNum[c]) in pairCount:
+                        pairCount[(-1,extCharNum[c])]+=1
+                    else: pairCount[(-1,extCharNum[c])]=1
                     last=[c]
                 elif c in charList:
                     if last!=[""]:
                         pairCount[(-1,-1)]+=len(last)*len(charMap[c])
-                        for _last in last:
-                            for _c in charMap[c]:
+                        for _c in charMap[c]:
+                            for _last in last:
                                 t=(extCharNum[_last],extCharNum[c+"_"+_c])
                                 if t in pairCount: pairCount[t]+=1
                                 else: pairCount[t]=1
+                    for _c in charMap[c]:
+                        if (-1,extCharNum[c+"_"+_c]) in pairCount:
+                            pairCount[(-1,extCharNum[c+"_"+_c])]+=1
+                        else: pairCount[(-1,extCharNum[c+"_"+_c])]=1
                     last=[c+"_"+fn for fn in charMap[c]]
                 else:last=[""]
 
@@ -56,7 +63,13 @@ def mapper(file_name):
     return pairCount
 
 if __name__ == '__main__':
-    with open("model.data","rb") as fin: pairCount = pickle.load(fin)
+    try:
+        fin=open("model.data","rb")
+    except FileNotFoundError as e:
+        pairCount={(-1,-1):0}
+    else:
+        pairCount=pickle.load(fin)
+        fin.close()
     pairCountList=[]
 
     pool = multiprocessing.Pool()
