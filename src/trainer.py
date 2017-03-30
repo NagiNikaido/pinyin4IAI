@@ -1,7 +1,7 @@
 from codecvt import *
 import pypinyin,json,time,multiprocessing,re
 import os
-import random
+import random,pickle
 
 trainSetPath="train_set"
 
@@ -56,8 +56,9 @@ def mapper(file_name):
     return pairCount
 
 if __name__ == '__main__':
-    pairCount = {(-1,-1):0}
+    with open("model.data","rb") as fin: pairCount = pickle.load(fin)
     pairCountList=[]
+
     pool = multiprocessing.Pool()
     for fn in os.listdir(trainSetPath):
         pairCountList.append(pool.apply_async(\
@@ -69,7 +70,4 @@ if __name__ == '__main__':
         for a,b in pc.get().items():
             if a in pairCount: pairCount[a]+=b
             else: pairCount[a]=b
-    print(pairCount[(-1,-1)])
-    with open("p_res.txt","w",encoding="utf-8") as fout:
-        for a,b in pairCount.items():
-            print(a[0],a[1],b,file = fout)
+    with open("model.data","wb") as fout: pickle.dump(pairCount,fout)
