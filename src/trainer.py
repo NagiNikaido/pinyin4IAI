@@ -1,16 +1,12 @@
 from codecvt import *
 import pypinyin,json,time,multiprocessing,re
-import os
+import os,tempfile
 import random,pickle
-import tempfile
 
 trainSetPath="train_set"
 
 puncs = re.compile(r"\s|\.|\(|\)|"+"|".join(["，","。","、","：","；","？","！","（","）","《","》",
                          "-","——","·","……","‘","’","“","”","/","\\[","\\]","【","】","\\|","℃"]))
-
-def pre_process():
-    pass
 
 def _add_val(_key,_dict,_delta=1):
     if _key in _dict: _dict[_key]+=_delta
@@ -46,22 +42,53 @@ def mapper(file_name,dump_dir):
     dump_file.close()
     return pairCount
 
+def post_mapper(file_path):
+    pairCount={}
+    print("post-processing ",file_path,"... Start time: ", time.clock())
+    with open(file_path,"r",encoding="utf-8") as fin:
+        for line in fin:
+            pl,ppl=list(line),pypinyin.lazy_pinyin(line,style=pypinyin.NORMAL,errors=lambda x : '*')
+            i,j=0,0
+            while True:
+                while i<len(pl) and not (pl[i] in charList): i+=1
+                while j<len(ppl) and not (ppl[j] in pinyinList): j+=1
+                if i>=len(pl) or j>=len(ppl): break
+                if isMulti(pl[i]):  pl[i]+="_"+ppl[j]
+                i+=1;j+=1
+            last=""
+            for c in pl:
+                if not c in extCharList: last=""
+                else:
+                    if last!="" and (len(c)>1 or len(last)>1):
+                        _add_val((extCharNum[last],extCharNum[c]),pairCount)
+                    last=c
+
+    print(file_name," done. End time: ", time.clock())
+    return pairCount
+
 if __name__ == '__main__':
     pairCount,pairCountList={(-2,-1):0,(-1,-1):0},[]
-    #with tempfile.TemporaryDirectory(dir=".") as tempdir:
-    def main():
-        tempdir="tmp_train"
+    extPairCount,extPairCountList={},[]
+    with tempfile.TemporaryDirectory(dir=".") as tempdir:
         pool=multiprocessing.Pool()
         #for fn in os.listdir(trainSetPath):
-        #    pairCountList.append(pool.apply_async(\
-        #            func=mapper,args=(fn,tempdir)))
-        fn = "2016-11.txt"
+        fn="2016-11.txt"
         pairCountList.append(pool.apply_async(func=mapper,args=(fn,tempdir)))
-        pool.close()
-        pool.join()
+        pool.close();pool.join()
 
         for pc in pairCountList:
             for a,b in pc.get().items():
                 _add_val(a,pairCount,b)
         with open("model.data","wb") as fout: pickle.dump(pairCount,fout)
-    main()
+
+        print("","Step 2#:")
+        pool=multiprocessing.Pool()
+        #for fn in os.listdir(trainSetPath):
+        fn="2016-11.txt"
+        extPairCountList.append(pool.apply_async(func=post_mapper,args=(tempdir+os.path.sep+fn,)))
+        pool.close();pool.join()
+
+        for pc in extPairCountList:
+            for a,b in pc.get().items():
+                _add_val(a,extPairCount,b)
+        with open("multi.data","wb") as fout: pickle.dump(extPairCount,fout)
