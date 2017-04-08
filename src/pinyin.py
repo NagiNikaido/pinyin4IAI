@@ -1,5 +1,4 @@
 import sys,os
-print(sys.argv[0])
 from codecvt import *
 from functools import reduce
 from math import log
