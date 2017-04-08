@@ -2,6 +2,7 @@ from codecvt import *
 from functools import reduce
 from math import log
 import pickle
+import sys
 
 ### model loading ###
 
@@ -71,9 +72,19 @@ def pinyin2str(sth):
                 if tr[0]!=float("-inf"):
                     _update(current,max(tc,cc),tr)
         dp=current
-    return reduce(lambda a,b: a if a[0]>b[0] else b,dp.values())
+    return reduce(lambda a,b: a if a[0]>b[0] else b,dp.values())[1]
     #return dp
 
 if __name__ == '__main__':
-    while True:
-        print(pinyin2str(input())[1])
+    if len(sys.argv)==1:
+        while True:
+            try: s=input()
+            except: break
+            else: print(pinyin2str(s))
+    elif len(sys.argv)==3:
+        with open(sys.argv[1],"r") as fin , open(sys.argv[2],"w") as fout:
+            for line in fin:
+                print(pinyin2str(line),file=fout)
+    else:
+        print("Usage : pinyin")
+        print("    or: pinyin input_file output_file")
