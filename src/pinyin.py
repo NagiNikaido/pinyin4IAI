@@ -21,10 +21,19 @@ for a,b in multi.items():
 
 ### model smoothing ###
 
-def _model_smooth():
-    pass
+def model_v(a,b):
+    return model[a,b] if (a,b) in model else 0
+def multi_v(a,b):
+    return multi[a,b] if (a,b) in multi else 0
+def _model_smooth(_l1 = 1., _l2 = 1.):
+    def _model(a,b):
+        t= _l1 * model_v(a,b)/model_v(-2,a) + (1-_l1) * model_v(-2,b)/model_v(-2,-1)
+        return float("-inf") if t == 0.0 else log(t)
+    def _multi(a,b):
+        return float("-inf")
+    return _model, _multi
 
-_model_smooth()
+_model,_multi = _model_smooth(.9)
 
 print("model loaded.")
 
@@ -32,23 +41,23 @@ print("model loaded.")
 def _calc_res(lc,lr,cc,tc):
     if tc==-1: # NORMAL
         if lc==-1 or not len(extCharList[lc])>1:
-            return (lr[0] + (float("-inf") if not (lc,cc) in model else log(model[lc,cc])-log(model[-2,lc])),lr[1]+charList[cc])
+            return (lr[0] + _model(lc,cc),lr[1]+charList[cc])
         else:
             _lc=charNum[extCharList[lc].split("_")[0]]
-            return (lr[0] + (float("-inf") if not (_lc,cc) in model or not (lc,cc) in multi else log(model[_lc,cc])-log(model[-2,_lc])+log(multi[lc,cc])-log(multi_tc[lc,cc])),\
+            return (lr[0] + _model(_lc,cc) + (float("-inf") if not (lc,cc) in multi else log(multi[lc,cc])-log(multi_tc[lc,cc])),\
                     lr[1]+charList[cc])
     else: # with modification
         if lc==-1 or not len(extCharList[lc])>1:
-            return (lr[0] + (float("-inf") if not (lc,cc) in model or not (lc,tc) in multi else log(model[lc,cc])-log(model[-2,cc])+log(multi[lc,tc])-log(multi_tc[lc,cc])),\
+            return (lr[0] + _model(lc,cc) + (float("-inf") if not (lc,tc) in multi else log(multi[lc,tc])-log(multi_tc[lc,cc])),\
                     lr[1]+charList[cc])
         else:
             _lc=charNum[extCharList[lc].split("_")[0]]
-            return (lr[0] + (float("-inf") if not (_lc,cc) in model or not (lc,tc) in multi else log(model[_lc,cc])-log(model[-2,_lc])+log(multi[lc,tc])-log(multi_tc[lc,cc])),\
+            return (lr[0] + _model(_lc,cc) + (float("-inf") if not (lc,tc) in multi else log(multi[lc,tc])-log(multi_tc[lc,cc])),\
                     lr[1]+charList[cc])
 
 def _calc_res__(lc,lr,cc,tc):
     if lc!=-1 and len(extCharList[lc])>1: lc=charNum[extCharList[lc].split("_")[0]]
-    return (lr[0] * (0 if not (lc,cc) in model else model[lc,cc]/model[-2,lc]),lr[1]+charList[cc])
+    return (lr[0] + _model(lc,cc),lr[1]+charList[cc])
 
 def pinyin2str(sth):
     dp={-1:(0.,"")}
@@ -63,7 +72,8 @@ def pinyin2str(sth):
                     _update(current,max(tc,cc),tr)
         dp=current
     return reduce(lambda a,b: a if a[0]>b[0] else b,dp.values())
+    #return dp
 
 if __name__ == '__main__':
     while True:
-        print(pinyin2str(input()))
+        print(pinyin2str(input())[1])
