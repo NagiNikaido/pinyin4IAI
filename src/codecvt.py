@@ -2,14 +2,15 @@
 import sys,os
 import copy
 charList,charCount,charNum,charMap=[],0,{},{}
-with open(os.path.dirname(sys.argv[0])+os.path.sep+"一二级汉字表.txt","r",encoding="gbk") as fin:
+__workdir = '.' if os.path.dirname(sys.argv[0])=="" else os.path.dirname(sys.argv[0])
+with open(__workdir+os.path.sep+"一二级汉字表.txt","r",encoding="gbk") as fin:
     charList=list(fin.readline().strip());
     for c in charList:
         charNum[c]=charCount
         charCount+=1
 
 pinyinList,pinyinCount,pinyinNum,pinyinMap=[],0,{},{}
-with open(os.path.dirname(sys.argv[0])+os.path.sep+"拼音汉字表.txt","r",encoding="gbk") as fin:
+with open(__workdir+os.path.sep+"拼音汉字表.txt","r",encoding="gbk") as fin:
     for line in fin:
         t=line.strip().split()
         pinyinList.append(t[0])
