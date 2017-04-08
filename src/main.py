@@ -1,5 +1,5 @@
-from pinyin import pinyin2str
 import sys
+from pinyin import pinyin2str
 
 if len(sys.argv)==1:
     while True:

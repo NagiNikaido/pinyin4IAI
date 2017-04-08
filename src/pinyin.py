@@ -1,13 +1,13 @@
+import sys,os
 from codecvt import *
 from functools import reduce
 from math import log
 import pickle
-import sys
 
 ### model loading ###
 
-with open("model.data","rb") as fin: model = pickle.load(fin)
-with open("multi.data","rb") as fin: multi = pickle.load(fin)
+with open(os.path.dirname(sys.argv[0])+os.path.sep+"model.data","rb") as fin: model = pickle.load(fin)
+with open(os.path.dirname(sys.argv[0])+os.path.sep+"multi.data","rb") as fin: multi = pickle.load(fin)
 multi_tc={}
 
 def _add_val(_key,_dict,_delta=1):
